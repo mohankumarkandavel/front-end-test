@@ -17,7 +17,11 @@
     <div class="container">
         <div class="row">
             <div class="col-sm-6 col-sm-offset-3" col-xs-12>
-                <h1>List of servers</h1>
+                <h2>List of servers</h2>
+                <select v-model="serverId"  class="form-control">
+                    <option v-for="server in servers" v-bind:value="server.id">{{server.name}}</option>
+                </select>
+                {{serverId}}
             </div>
     </div>
 </div>
@@ -25,14 +29,26 @@
 </body>
 <!-- setup vue.js and style-->
 <script src="vue.js"></script>
+<script src="https://unpkg.com/axios@0.12.0/dist/axios.min.js"></script>
 
 <script>
 
     const vm = new Vue({
         el: '#app',
         data: {
-
-        }
+            serverId: '',
+            servers: [],
+        },
+        mounted() {<!-- get list of servers from api with help of axios-->
+        axios.get("http://jbanew.staging.joybusinessacademy.com/api/v2/assignment/servers/")
+            .then(function (response) {
+                vm.servers = response.data.source.rows
+                console.log(response.data.source.rows)
+            })
+            .catch(error => {
+                console.log(error);
+            })
+    },
     });
 </script>
 </html>
