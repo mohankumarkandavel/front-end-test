@@ -16,20 +16,38 @@
 <div id="app">
     <div class="container">
         <div class="row">
-            <div class="col-sm-6 col-sm-offset-3" col-xs-12>
+            <div class="col-sm-6 col-sm-offset-3 col-xs-12">
                 <h2>List of servers</h2>
-                <select v-model="serverId"  class="form-control">
+                <!-- pass the serverid to get statistics value-->
+                <select v-model="serverId" v-on:change="onStatistics" class="form-control">
+                    <option disabled value="">Please select one</option>
                     <option v-for="server in servers" v-bind:value="server.id">{{server.name}}</option>
                 </select>
-                {{serverId}}
             </div>
+            <div class="row">
+                <div class="col-sm-6 col-sm-offset-3 col-xs-12">
+                    <h4>Statistic of server</h4>
+                    <!-- line chart component will display after selecting the server name -->
+                    <!-- line chart component from vue-chart.js library -->
+                    <line-chart v-bind:statistics="statistics"></line-chart>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6 col-sm-offset-3 col-xs-12">
+                    <div class="col-sm-3 "><strong>Lowest:</strong> {{lowValue}}</div>
+                    <div class="col-sm-3 "><strong>Highest:</strong> {{highValue}}</div>
+                    <div class="col-sm-6 "><strong>Average:</strong> {{avgValue}}</div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 </div>
 </body>
 <!-- setup vue.js and style-->
 <script src="vue.js"></script>
 <script src="https://unpkg.com/axios@0.12.0/dist/axios.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+<script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
 
 <script>
 
@@ -38,17 +56,68 @@
         data: {
             serverId: '',
             servers: [],
+            statistics: [],
+            lowValue: 0,
+            highValue: 0,
+            avgValue: 0
         },
         mounted() {<!-- get list of servers from api with help of axios-->
-        axios.get("http://jbanew.staging.joybusinessacademy.com/api/v2/assignment/servers/")
-            .then(function (response) {
-                vm.servers = response.data.source.rows
-                console.log(response.data.source.rows)
-            })
-            .catch(error => {
-                console.log(error);
-            })
-    },
+            axios.get("http://jbanew.staging.joybusinessacademy.com/api/v2/assignment/servers/")
+                .then(function (response) {
+                    vm.servers = response.data.source.rows
+                    console.log(response.data.source.rows)
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        },
+        methods: {
+            onStatistics: function () {
+                axios.get("http://jbanew.staging.joybusinessacademy.com/api/v2/assignment/servers/" + this.serverId)
+                    .then(function (response) {
+                        vm.statistics = response.data.source.data.value
+                        console.log(response.data.source.data.value)
+                        Vue.component('line-chart', {
+                            extends: VueChartJs.Line,
+                            props: ["statistics"],
+                            mounted() {
+                                var chartLabels = []
+                                for (var i = 0; i < this.statistics.length; ++i) {
+                                    chartLabels.push(i)
+                                }
+                                this.renderChart({
+                                    labels: chartLabels,
+                                    datasets: [
+                                        {
+                                            label: 'Data value',
+                                            backgroundColor: '#F4511E',
+                                            data: this.valueChartData
+                                        }
+                                    ]
+                                }, {responsive: true, maintainAspectRatio: false})
+                            },
+                            computed: {
+                                valueChartData() {
+                                    console.log(this.statistics)
+                                    vm.lowValue = Math.min(...this.statistics)
+                                    vm.highValue = Math.max(...this.statistics)
+                                    vm.avgValue = eval(this.statistics.join("+")) / this.statistics.length
+                                    return this.statistics
+                                }
+                            },
+                            update() {
+                                console.log(this.statistics)
+                            }
+
+
+                        })
+
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    })
+            }
+        }
     });
 </script>
 </html>
